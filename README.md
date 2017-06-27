@@ -3,7 +3,7 @@
 
 使用react实现微信表情的表情输入，显示。目前输入和显示分开显示。
   
-![image](https://github.com/xuyitao/react-wechat-emoji/blob/master/Screenshot/sample.png）
+![image](https://github.com/xuyitao/react-wechat-emoji/blob/master/Screenshot/sample.png)
 ## 表情对照表
 
   	this.emojiMap = {
