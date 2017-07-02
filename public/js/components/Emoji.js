@@ -44,6 +44,7 @@ export default class Emoji extends React.Component {
 		}
 
 		this.emojiMapRev = this.swapJson(this.emojiMap);
+		this.sel = null;
 	}
 
 	swapJson(json){
@@ -61,93 +62,114 @@ export default class Emoji extends React.Component {
 		return this.emojiMapRev[value];
 	}
 
+	insertHtmlAtCaret(html) {
+    var sel, range;
+    if (window.getSelection) {
+        // IE9 and non-IE
+				if(this.sel) {
+					sel = this.sel;
+				} else {
+        	sel = window.getSelection();
+				}
+        if (sel.getRangeAt && sel.rangeCount) {
+            range = sel.getRangeAt(0);
+            range.deleteContents();
+            // Range.createContextualFragment() would be useful here but is
+            // non-standard and not supported in all browsers (IE9, for one)
+            var el = document.createElement("div");
+            el.innerHTML = html;
+            var frag = document.createDocumentFragment(), node, lastNode;
+            while ((node = el.firstChild)) {
+                lastNode = frag.appendChild(node);
+            }
+            range.insertNode(frag);
+            // Preserve the selection
+            if (lastNode) {
+                range = range.cloneRange();
+                range.setStartAfter(lastNode);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }
+    } else if (document.selection && document.selection.type != "Control") {
+        // IE < 9
+        document.selection.createRange().pasteHTML(html);
+    }
+  }
+
 	onEmojiClick(key) {
-		let string = this.props.scriptString;
-		let cursorPostion = this.refs.input.selectionStart;
-		let preStr = string.substring(0,cursorPostion);
-		let laterStr = string.substring(cursorPostion, string.length);
-		let emoji = this.getEmojiById(key);
-		this.props.onChange(`${preStr}${emoji}${laterStr}`);
+		this.refs.input.focus();
+		let emoji = `<img src="/images/${key}.gif" />`;
+		this.insertHtmlAtCaret(emoji);
+
+		this.onScriptChange();
 	}
 
-	onScriptChange(event) {
-		 this.props.onChange(event.target.value);
+	onScriptChange(html) {
+		var html = this.refs.input.innerHTML;
+		 this.props.onChange(html);
 	}
 	onHandleMouseOut(event) {
-		console.log(`cursorPostion = ${event.target.selectionStart}`);
-		this.setState({cursorPostion: event.target.selectionStart});
+
 	}
 
 	replaceEm(str){
 		// str = '123[微笑]234\n[微笑]456[微笑]\n6666[微笑]';
-		str = str.replace(/\</g,'&lt;');
-		str = str.replace(/\>/g,'&gt;');
-
-		// var reg = new RegExp(/\[.{1,3}\]/g);
-		// var reg = new RegExp(/\n/g);
+		// str = str.replace(/\<img src="\/images\//g,'[');
+		// str = str.replace(/.gif"\>/g,']');
+		// str = str.replace(/\<img src="\/images\/d{3}.gif"\>/g,'[$1]');
+		// console.log('str='+str);
+		// var reg = new RegExp(/\<img src="\/images\/\d{3}.gif"\>/g);
+		// var reg = new RegExp(/\d{3}/g);
 		// let reslut = reg.exec(str);
 		// console.log(reslut);
 		// console.log(reslut[0]);
 		// console.log(reslut.index);
 		// console.log(reg.lastIndex);
-		let list=[];
-		// list.push(<span style={{display:'inline'}} >str</span>)
-		// list.push(<img src="/images/emoji/1.gif" border="0"  style={{display:'inline'}}/>)
-		// list.push(<span  style={{display:'inline'}}>fsfsefsefsef</span>)
-		this.parseJSStringBr(list, str)
-		// console.log(list);
-		return list;
+
+		return this.parseJSStringImg(str);
 	}
 
-	parseJSStringBr(list, str) {
 
-		if(!str || str.length == 0) return ;
+	parseJSStringImg(str) {
+		if(!str || str.length == 0) return str;
+		var reg = new RegExp(/\<img src="\/images\/\d{3}.gif"\>/g);
+		let result = reg.exec(str);
+		// console.log(`parseJSStringImg ${result}`);
+		if(result) {
+			let strImg = result[0];
 
-		var reg = new RegExp('\n','g');
-		let reslut = reg.exec(str);
-		// console.log(`parseJSStringBr ${reslut}`);
-		if(reslut) {
-			let preStr=str.substring(0, reslut.index);
-			let lastStr=str.substring(reg.lastIndex, str.length);
-			this.parseJSStringImg(list, preStr);
-			list.push(<br key={this.keyIndex++} />)
-			this.parseJSStringBr(list, lastStr);
+			let regImg = new RegExp(/\d{3}/g);
+			let reslutImg = regImg.exec(str);
+			// console.log(`parseJSStringImg reslutImg = ${reslutImg}`);
+			if(reslutImg) {
+				let emoji = this.getEmojiById(reslutImg[0]);
+				// console.log(`parseJSStringImg emoji = ${emoji}`);
+				str = str.replace(strImg, emoji);
+				// console.log(`parseJSStringImg str = ${str}`);
+			}
+			return this.parseJSStringImg(str);
 		} else {
-			this.parseJSStringImg(list, str);
+			return str;
 		}
 	}
 
-	parseJSStringImg(list, str) {
-		if(!str || str.length == 0) return ;
-		var reg = new RegExp(/\[.{1,3}\]/g);
-		let reslut = reg.exec(str);
-		// console.log(`parseJSStringImg ${reslut}`);
-		if(reslut) {
-			let preStr=str.substring(0, reslut.index);
-			let lastStr=str.substring(reg.lastIndex, str.length);
-			this.parseJSStringImg(list, preStr);
 
-			let key = this.getEmojiKeyByValue(reslut[0]);
-			list.push(<img key={this.keyIndex++} src={`/images/${key}.gif`} style={{display:'inline'}}/>)
-			this.parseJSStringImg(list, lastStr);
-		} else {
-			this.parseJSStringText(list, str);
+	emitChange(evt) {
+		console.log();
+
+		this.onScriptChange();
+  }
+
+	onLoseFocus() {
+		if (window.getSelection) {
+			this.sel = window.getSelection();
 		}
 	}
-
-	parseJSStringText(list, str) {
-		if(!str || str.length == 0) return ;
-		list.push(<span key={this.keyIndex++} style={{display:'inline'}}>{str}</span>)
-	}
-
 	render() {
 		let that = this;
 		var entries = [];
-		// for (let i = 0; i < total/15; i++) {
-		// 	let start = i*15+1;
-		// 	let end = start+15;
-		// 	entries.push(<EmojiRow key={'row'+i} imgs={_.range(start, end)}  onClick={this.onEmojiClick.bind(this)}/>)
-		// }
 
 		let tmpList=[];
 		_.each(this.emojiMap, function (value, key) {
@@ -162,7 +184,7 @@ export default class Emoji extends React.Component {
 			tmpList =[];
 		}
 		return(<div id="id" >
-						<div>微信效果</div>
+						<div>微信文本</div>
 						{
 							this.props.scriptString.length > 0 &&
 							<div id="show"  ref='show' style = {{height: 60, width:800, border:'solid', borderWidth: 2,borderColor: '#666', borderRadius: 5}}>
@@ -171,15 +193,15 @@ export default class Emoji extends React.Component {
 								}
 							</div>
 						}
-						<div>实际文本</div>
-						<textarea ref="input"
-									// onKeyDown={this.handleKeyDown.bind(this)}
-                  onChange={this.onScriptChange.bind(this)}
-                  value={this.props.scriptString}
-									onClick={this.onHandleMouseOut.bind(this)}
-									style = {{height: 60, width:800, borderWidth: 2,borderColor: '#666',
-									borderRadius: 5}}/>
-
+						<div>编辑文本</div>
+						<div ref='input'
+	            onInput={this.emitChange.bind(this)}
+	            onBlur={this.onLoseFocus.bind(this)}
+	            contentEditable
+	            dangerouslySetInnerHTML={{__html: this.props.html}}
+							style = {{height: 60, width:800, borderWidth: 2,borderColor: '#666',
+							borderRadius: 5, border:'solid'}}>
+						</div>
 						<div onClick={()=>this.setState({show:!this.state.show})}>表情<img src={'/images/100.gif'} style={{display:'inline'}}/></div>
 						{ this.state.show &&
 							<table>
