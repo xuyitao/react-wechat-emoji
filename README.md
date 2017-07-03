@@ -1,9 +1,25 @@
 # react-wechat-emoji
+
 ## 简介
 
 使用react实现微信表情的表情输入，显示。目前输入和显示分开显示。
-  
+
+两种实现：
+
+一、
+
+通过textare获得文本，插入表情即插入文本如[微笑]，然后解析文本显示模拟带图片效果：
+
 ![image](https://github.com/xuyitao/react-wechat-emoji/blob/master/Screenshot/sample.png)
+
+二、
+
+通过div contentEditable 属性操作，插入表情即插入图片标签<img />，最后通过对html文本解析成微信文本。
+
+![image](https://github.com/xuyitao/react-wechat-emoji/blob/master/Screenshot/sample1.png)
+
+问题：点击时无法插入两个连续图片中间，只能通过按键操作。
+
 ## 表情对照表
 
   	this.emojiMap = {
